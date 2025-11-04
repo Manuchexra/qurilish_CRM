@@ -8,7 +8,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from .models import CustomUser
-from .serializers import UserSerializer, UserLoginSerializer, UserCreateSerializer
+from .serializers import UserSerializer, UserLoginSerializer, UserCreateSerializer, RegisterSerializer
 from .permissions import *
 
 @swagger_auto_schema(
@@ -282,4 +282,59 @@ def refresh_token_view(request):
         return Response(
             {'error': f'Server xatosi: {str(e)}'}, 
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Ro'yxatdan o'tish - Barcha rollar uchun ochiq",
+    request_body=RegisterSerializer,
+    responses={
+        201: openapi.Response(
+            description="Foydalanuvchi muvaffaqiyatli yaratildi",
+            schema=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'user': openapi.Schema(type=openapi.TYPE_OBJECT),
+                    'tokens': openapi.Schema(
+                        type=openapi.TYPE_OBJECT,
+                        properties={
+                            'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                            'access': openapi.Schema(type=openapi.TYPE_STRING),
+                        }
+                    )
+                }
+            )
+        ),
+        400: openapi.Response(description="Noto'g'ri ma'lumotlar")
+    }
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_view(request):
+    try:
+        serializer = RegisterSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Avtomatik login qilish (token yaratish)
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'message': 'Foydalanuvchi muvaffaqiyatli yaratildi',
+                'user': UserSerializer(user).data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        return Response(
+            {'error': f'Server xatosi: {str(e)}'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

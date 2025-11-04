@@ -73,3 +73,52 @@ class UserCreateSerializer(serializers.ModelSerializer):
         if value and CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Bu email allaqachon mavjud.")
         return value
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        min_length=6,
+        help_text="Parol (kamida 6 ta belgi)",
+        style={'input_type': 'password'}
+    )
+    password_confirm = serializers.CharField(
+        write_only=True,
+        min_length=6,
+        help_text="Parolni takrorlang",
+        style={'input_type': 'password'}
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('first_name', 'last_name', 'email', 'role', 'password', 'password_confirm')
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+            'email': {'required': True},
+            'role': {'required': True},
+        }
+
+    def validate_email(self, value):
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Bu email allaqachon mavjud.")
+        return value
+
+    def validate(self, data):
+        if data['password'] != data['password_confirm']:
+            raise serializers.ValidationError("Parollar mos kelmadi.")
+        return data
+
+    def create(self, validated_data):
+        # Password confirm ni o'chirib tashlaymiz
+        validated_data.pop('password_confirm')
+        
+        # Username ni email dan avtomatik yaratamiz
+        validated_data['username'] = validated_data['email']
+        
+        # Foydalanuvchi yaratish (faol holatda)
+        password = validated_data.pop('password')
+        user = CustomUser.objects.create_user(**validated_data)
+        user.set_password(password)
+        user.save()
+        
+        return user

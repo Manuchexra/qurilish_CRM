@@ -10,4 +10,5 @@ urlpatterns = [
     path('check-auth/', views.check_auth, name='check_auth'),
     path('users/', views.UserListView.as_view(), name='user_list'),
     path('users/create/', views.create_user, name='create_user'),
+    path('register/', views.register_view, name='register'),
 ]

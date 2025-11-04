@@ -173,6 +173,22 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
+import os
+from pathlib import Path
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ... boshqa sozlamalar ...
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Bu qatorni qo'shing
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),  # Agar qo'shimcha static papkalar bo'lsa
+]
+
+# ... qolgan sozlamalar ...
 
 STATIC_URL = 'static/'
 
