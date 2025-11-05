@@ -92,6 +92,25 @@ class CustomUserAdmin(UserAdmin):
         self.message_user(request, f"{updated} ta foydalanuvchi faolsizlantirildi")
     deactivate_users.short_description = "Tanlangan foydalanuvchilarni faolsizlantirish"
 
+    
+from django.contrib import messages
+
+# CustomUserAdmin class ichiga qo'shing
+def activate_users(self, request, queryset):
+    """Tanlangan foydalanuvchilarni faollashtirish"""
+    updated = queryset.update(is_active=True)
+    self.message_user(request, f"{updated} ta foydalanuvchi faollashtirildi", messages.SUCCESS)
+activate_users.short_description = "Tanlangan foydalanuvchilarni faollashtirish"
+
+def deactivate_users(self, request, queryset):
+    """Tanlangan foydalanuvchilarni faolsizlantirish"""
+    updated = queryset.update(is_active=False)
+    self.message_user(request, f"{updated} ta foydalanuvchi faolsizlantirildi", messages.WARNING)
+deactivate_users.short_description = "Tanlangan foydalanuvchilarni faolsizlantirish"
+
+# actions ga qo'shing
+actions = [activate_users, deactivate_users]
+
 # Admin panel sarlavhasini o'zgartirish
 admin.site.site_header = "Qurilish Mollari CRM Tizimi"
 admin.site.site_title = "Warehouse CRM"

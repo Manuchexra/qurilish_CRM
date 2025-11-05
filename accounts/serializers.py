@@ -77,13 +77,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
-        min_length=6,
-        help_text="Parol (kamida 6 ta belgi)",
+        min_length=8,
+        help_text="Parol (kamida 8 ta belgi)",
         style={'input_type': 'password'}
     )
     password_confirm = serializers.CharField(
         write_only=True,
-        min_length=6,
+        min_length=8,
         help_text="Parolni takrorlang",
         style={'input_type': 'password'}
     )
@@ -98,24 +98,44 @@ class RegisterSerializer(serializers.ModelSerializer):
             'role': {'required': True},
         }
 
+    def validate_role(self, value):
+        # Faqat past darajadagi rollarga ruxsat beramiz
+        allowed_roles = ['warehouse_admin', 'main_warehouse_forwarder', 'warehouse_receiver']
+        if value not in allowed_roles:
+            raise serializers.ValidationError(
+                f"Ushbu rol uchun ro'yxatdan o'tish mumkin emas. Faqat quyidagilar ruxsat etilgan: {', '.join(allowed_roles)}"
+            )
+        return value
+
     def validate_email(self, value):
         if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Bu email allaqachon mavjud.")
-        return value
+        return value.lower()
 
     def validate(self, data):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError("Parollar mos kelmadi.")
+        
+        # Parol murakkabligini tekshirish
+        password = data['password']
+        if len(password) < 8:
+            raise serializers.ValidationError("Parol kamida 8 ta belgidan iborat bo'lishi kerak.")
+        if not any(char.isdigit() for char in password):
+            raise serializers.ValidationError("Parol kamida 1 ta raqam qatnashishi kerak.")
+        if not any(char.isalpha() for char in password):
+            raise serializers.ValidationError("Parol kamida 1 ta harf qatnashishi kerak.")
+            
         return data
 
     def create(self, validated_data):
-        # Password confirm ni o'chirib tashlaymiz
         validated_data.pop('password_confirm')
         
         # Username ni email dan avtomatik yaratamiz
-        validated_data['username'] = validated_data['email']
+        validated_data['username'] = validated_data['email'].lower()
         
-        # Foydalanuvchi yaratish (faol holatda)
+        # Foydalanuvchi yaratish (avtomatik faolsiz holatda)
+        validated_data['is_active'] = False  # Admin tasdiqlashini kutar
+        
         password = validated_data.pop('password')
         user = CustomUser.objects.create_user(**validated_data)
         user.set_password(password)
